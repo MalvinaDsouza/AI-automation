@@ -1,0 +1,28 @@
+.container {
+  width: 400px;
+  margin: auto;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+}
+
+.dealer-list {
+  margin: 10px 0;
+}
+
+.dealer-item {
+  display: block;
+  margin: 5px 0;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px;
+  background: orange;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
