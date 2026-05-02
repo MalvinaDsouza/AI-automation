@@ -9,22 +9,22 @@ function Creative() {
   const [dealers, setDealers] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [selectedDealers, setSelectedDealers] = useState([]);
-const [image, setImage] = useState(null);
-const [preview, setPreview] = useState("");
-const [showCreative, setShowCreative] = useState(false);
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [showCreative, setShowCreative] = useState(false);
   const [outputs, setOutputs] = useState([]);
   const navigate = useNavigate();
 
-
   useEffect(() => {
-    axios.get("http://127.0.0.1:5000/accounts")
-      .then(res => setAccounts(res.data))
-      .catch(err => console.error(err));
+    axios
+      .get("http://127.0.0.1:5000/accounts")
+      .then((res) => setAccounts(res.data))
+      .catch((err) => console.error(err));
   }, []);
 
   const handleAccountChange = async (id) => {
     setSelectedAccount(id);
-    setSelectedDealers([]); 
+    setSelectedDealers([]);
 
     try {
       const res = await axios.get(`http://127.0.0.1:5000/dealerships/${id}`);
@@ -34,128 +34,67 @@ const [showCreative, setShowCreative] = useState(false);
     }
   };
 
- 
- const handleDealerSelect = (id) => {
-  setSelectedDealers(prev =>
-    prev.includes(id)
-      ? prev.filter(d => d !== id)
-      : [...prev, id]
-  );
-};
+  const handleDealerSelect = (id) => {
+    setSelectedDealers((prev) =>
+      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
+    );
+  };
 
- 
   const handleGenerate = async () => {
+    if (!image) {
+      alert("Upload image");
+      return;
+    }
 
-  if (!image) {
-    alert("Upload image");
-    return;
-  }
+    if (selectedDealers.length === 0) {
+      alert("Select dealers");
+      return;
+    }
 
-  if (selectedDealers.length === 0) {
-    alert("Select dealers");
-    return;
-  }
+    const formData = new FormData();
 
-  const formData =
-    new FormData();
+    formData.append("image", image);
 
-  formData.append(
-    "image",
-    image
-  );
+    selectedDealers.forEach((id) => formData.append("dealers", id));
 
-  selectedDealers.forEach(
-    id =>
-      formData.append(
-        "dealers",
-        id
-      )
-  );
-
-
-
-  try {
-
-    const res =
-      await axios.post(
-
+    try {
+      const res = await axios.post(
         "http://127.0.0.1:5000/generate",
 
-        formData
+        formData,
       );
 
+      const files = res.data;
 
+      files.forEach((file) => {
+        const link = document.createElement("a");
 
-    const files =
-      res.data;
+        link.href = `http://127.0.0.1:5000/download/${file}`;
 
+        link.download = file;
 
-
-    
-    files.forEach(
-      file => {
-
-        const link =
-          document.createElement(
-            "a"
-          );
-
-        link.href =
-
-          `http://127.0.0.1:5000/download/${file}`;
-
-
-        link.download =
-          file;
-
-
-        document.body.appendChild(
-          link
-        );
-
+        document.body.appendChild(link);
 
         link.click();
 
+        document.body.removeChild(link);
+      });
 
-        document.body.removeChild(
-          link
-        );
+      navigate(
+        "/creativepanels",
 
-      }
-    );
+        {
+          state: {
+            dealerIds: selectedDealers,
 
-
-
-    
-    navigate(
-
-      "/creativepanels",
-
-      {
-        state: {
-
-          dealerIds:
-            selectedDealers,
-
-          preview
-
-        }
-      }
-    );
-
-
-
-  } catch (err) {
-
-    console.error(
-      err
-    );
-
-  }
-};
-
-
-
+            preview,
+          },
+        },
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="container">
@@ -166,14 +105,13 @@ const [showCreative, setShowCreative] = useState(false);
         onChange={(e) => handleAccountChange(e.target.value)}
       >
         <option value="">-- Select Brand --</option>
-        {accounts.map(a => (
+        {accounts.map((a) => (
           <option key={a._id} value={a._id}>
-  {a.name}
-</option>
+            {a.name}
+          </option>
         ))}
       </select>
 
-      
       {selectedAccount && (
         <div className="dealer-list">
           <h4>Select Dealerships</h4>
@@ -181,58 +119,50 @@ const [showCreative, setShowCreative] = useState(false);
           {dealers.length === 0 ? (
             <p>No dealers available</p>
           ) : (
-            dealers.map(d => (
-  <label key={d._id} className="dealer-item">
-    <input
-      type="checkbox"
-      checked={selectedDealers.includes(d._id)}
-      onChange={() => handleDealerSelect(d._id)}
-    />
-    {d.name}
-  </label>
-))
+            dealers.map((d) => (
+              <label key={d._id} className="dealer-item">
+                <input
+                  type="checkbox"
+                  checked={selectedDealers.includes(d._id)}
+                  onChange={() => handleDealerSelect(d._id)}
+                />
+                {d.name}
+              </label>
+            ))
           )}
         </div>
       )}
 
-      
       <input
-  type="file"
-  accept=".png,.jpg,.jpeg"
-  onChange={(e) => {
+        type="file"
+        accept=".png,.jpg,.jpeg"
+        onChange={(e) => {
+          const file = e.target.files[0];
 
-    const file = e.target.files[0];
+          if (!file) return;
 
-    if (!file) return;
+          const fileName = file.name.toLowerCase();
 
-    const fileName = file.name.toLowerCase();
+          const isValid =
+            fileName.endsWith(".png") ||
+            fileName.endsWith(".jpg") ||
+            fileName.endsWith(".jpeg");
 
-    const isValid =
-      fileName.endsWith(".png") ||
-      fileName.endsWith(".jpg") ||
-      fileName.endsWith(".jpeg");
+          if (!isValid) {
+            alert("Only PNG or JPG images allowed");
+            e.target.value = "";
+            return;
+          }
 
-    if (!isValid) {
-      alert("Only PNG or JPG images allowed");
-      e.target.value = "";
-      return;
-    }
+          setImage(file);
 
-    setImage(file);
+          setPreview(URL.createObjectURL(file));
+        }}
+      />
 
-    
-    setPreview(
-      URL.createObjectURL(file)
-    );
-  }}
-/>
-
-      
       <button onClick={handleGenerate}>Generate</button>
-      
     </div>
   );
 }
-
 
 export default Creative;
